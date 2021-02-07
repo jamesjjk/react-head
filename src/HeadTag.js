@@ -9,13 +9,11 @@ export default class HeadTag extends Component {
   };
 
   static propTypes = {
-    tag: PropTypes.string,
-    staticSSR: PropTypes.bool,
+    tag: PropTypes.string
   };
 
   static defaultProps = {
-    tag: 'meta',
-    staticSSR: false,
+    tag: 'meta'
   };
 
   state = {
@@ -26,9 +24,8 @@ export default class HeadTag extends Component {
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({ canUseDOM: true });
 
-    const { staticSSR, tag, children, ...rest } = this.props; // eslint-disable-line react/prop-types
-    const ext = staticSSR ? '' : '[data-reactroot=""]';
-    const ssrTags = document.head.querySelector(`${tag}${buildSelector(rest)}${ext}`);
+    const { tag, children, ...rest } = this.props; // eslint-disable-line react/prop-types
+    const ssrTags = document.head.querySelector(`${tag}${buildSelector(rest)}[data-ssr=""]`);
 
     /* istanbul ignore else */
     if (ssrTags) {
@@ -37,17 +34,34 @@ export default class HeadTag extends Component {
   }
 
   render() {
-    const { staticSSR, tag: Tag, ...rest } = this.props;
-
-    const Comp = <Tag {...rest} />;
+    const { tag: Tag, ...rest } = this.props;
 
     if (this.state.canUseDOM) {
+      const Comp = (
+        <Tag
+          key={`${Tag}${Object.keys(rest)
+          .filter(key => key !== 'content' && key !== 'children')
+          .map(key => `:${key}`)
+          .join('')}`}
+          {...rest}
+        />
+      );
       return ReactDOM.createPortal(Comp, document.head);
     }
 
     // on client we don't require HeadCollector
     if (this.context.reactHeadTags) {
-      this.context.reactHeadTags.add(Comp);
+      const ServerComp = (
+        <Tag
+          key={`${Tag}${Object.keys(rest)
+          .filter(key => key !== 'content' && key !== 'children')
+          .map(key => `:${key}`)
+          .join('')}`}
+          data-ssr=""
+          {...rest}
+        />
+      );
+      this.context.reactHeadTags.add(ServerComp);
     }
 
     return null;
